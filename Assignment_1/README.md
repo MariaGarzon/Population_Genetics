@@ -6,9 +6,8 @@ However, nowadays, this technique is gaining ground in other areas like comparat
 
 For this assignment, we used the Phangorn package in R.
 
-## Assignment Overview:
-The assignment had us dive deep into practical phylogeny construction methods, allowing us to create a multiple sequence alignment and build trees 
-using both distance-based and Maximum Likelihood approaches. We also delved into assessing confidence in phylogenetic relationships.
+## Objective
+The primary aim is to apply practical methods to construct phylogeny using the Phangorn package in R, exploring both distance-based and Maximum Likelihood approaches to tree-building.
 
 ## The Data:
 The data we worked with came from a study by Uddin et al. (2008) and included sequences of the COX5A gene from great apes, new and old world monkeys. 
