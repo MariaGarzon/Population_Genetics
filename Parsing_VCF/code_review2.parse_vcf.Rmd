@@ -1,0 +1,150 @@
+---
+title: "Code Review: Parsing a VCF in R"
+author: "Jonathan Flowers"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#### Introduction
+
+In this exercise, we will parse a VCF using the VariantAnnotation package and convert it to a tibble (a table-like format that is easy to manipulate in R)
+
+#### Instructions
+
+You will need install the VariantAnnotation package (installation instructions available at the Bioconductor repository) and the tidyverse package available at the Comprehensive R Archive Network (CRAN) repository. 
+
+Then, create a project directory for this code review and copy this .Rmd into same directory as the VCF file ("chr7ESN_6000000_8000000.vcf").
+
+#### About the data
+
+The data are SNPs from the 1,000 Genomes Project. The VCF consists of samples from the Esan of Nigeria (ESN) and consists of SNPs from 6 to 8 Mb on chromosome 7.
+
+Technical note:
+
+A note on function calls: Usually in R, you load each package with the library function. This loads into your environment all of the functions available in that package. Occasionally, when you load two packages, one or a few of the functions have the same name and R will prioritize one over the other (so you only have access to one of the functions not both). Such a "collision" of function names occurs if you load both VariantAnnotation and tidyverse and it impacts a core function. Therefore, below we only load tidyverse, and whenever we call a VariantAnnotation function, we use the syntax VariantAnnotation::<function>. This bypasses the need to load the VariantAnnotation package and avoid function name collisions, while still allowing us to call VariantAnnotation functions.
+
+If you would like to review the documentation for any functions, type ?<function name> at the console.
+
+```{r}
+vcf_file <- "chr7ESN_6000000_8000000.vcf"
+library(VariantAnnotation)
+
+# note: sometimes I find it useful to add extensions to the variable name that describes the type of object the variable is, in this case a CollapsedVCF object
+vcf.CollapsedVCF <- VariantAnnotation::readVcf(vcf_file)
+
+#The vcf.CollapsedVCF object contains all the variant information present in the original VCF file but in an R-compatible format.
+
+# Can get the class of any object
+class(vcf.CollapsedVCF)
+
+# View a summary of the vcf.CollapsedVCF object
+summary(vcf.CollapsedVCF)
+# View the genomic ranges of the variants
+rowRanges(vcf.CollapsedVCF)
+# Access the INFO fields
+info(vcf.CollapsedVCF)
+
+```
+
+Often we want to review the numbers of variants and the number of samples
+
+```{r}
+# What are the dimensions Variants (rows) x Samples (columns)
+dim(vcf.CollapsedVCF)
+```
+
+A VCF file may contain indels, SNPs, and possibly other types of variants. How can we tell which are SNPs (=SNVs, single nucleotide variants)?
+
+```{r}
+# note: get a logical vector of same length as CollapsedVCF indicated if variant is a SNP or something else
+isSNV.logical <- VariantAnnotation::isSNV(vcf.CollapsedVCF) # returns logical vector
+
+# how many variants are SNPs? How many variants are something else?
+table(isSNV.logical)
+```
+
+How many SNPs are biallelic?
+
+```{r}
+isSNV.biallelic_only.logical <- VariantAnnotation::isSNV(vcf.CollapsedVCF,singleAltOnly=TRUE)
+table(isSNV.biallelic_only.logical)
+```
+
+
+Subset a CollapsedVCF like you would subset a data.frame in base R, to return
+biallelic SNPs for all samples. This uses base R-like syntax (as if we were subsetting
+a data.frame or matrix)
+
+```{r}
+# note: inside the [ ], on the left hand side of "," we provide a logical vector to select rows
+#.      of the object that evaluate to TRUE. On the right of the "," we provide nothing to 
+#.      keep all columns. This is syntax much like base R approach to selecting rows and columns
+vcf.snps_only.CollapsedVCF <- vcf.CollapsedVCF[isSNV.biallelic_only.logical, ]
+```
+
+Now the CollapsedVCF object should only have biallelic SNPs, lets confirm.
+```{r}
+print("This is the number of biallelic snps:",quote=F)
+sum(isSNV.biallelic_only.logical)
+
+print("These are the dimensions of the subsetted CollapsedVCF:",quote=F)
+dim(vcf.snps_only.CollapsedVCF)
+```
+
+The CollapsedVCF object class can store a lot of information about the variant data. Here, we would like to extract genotypes. The geno() function extracts a genotype matrix and stores it in a list object (technically a SimpleList object class).
+
+A SimpleList object is a type of list where each element can be a different length, and each element represents the genotype information for a specific field of the samples in the VCF.
+
+Structure of a Genotype Matrix
+Rows: Each row corresponds to an individual or sample.
+Columns: Each column corresponds to a specific genetic variant
+
+```{r}
+# This breaks out the different fields of the sample columns into matrices. The matrices
+# are stored as named elements in the list
+vcf.snps_only.SimpleList <- VariantAnnotation::geno(vcf.snps_only.CollapsedVCF)
+
+# Review the different named list elements 
+names(vcf.snps_only.SimpleList)
+
+# "GT" typically represents Genotype.
+
+#Accessing the Elements
+gt_matrix <- vcf.snps_only.SimpleList$GT  # or vcf.snps_only.SimpleList[["GT"]]
+
+```
+
+There is only a single feature type in this VCF that corresponds to the genotypes ("GT"). So lets extract a matrix of genotypes from the SimpleList object and view the first 2 SNPs.
+
+```{r}
+# Check class of vcf.snps_only.geno.SimpleList[['GT']]
+class(vcf.snps_only.SimpleList[['GT']])
+```
+
+Review first 2 rows of matrix
+```{r}
+head(vcf.snps_only.SimpleList[['GT']], n = 2)
+```
+
+Base R matrices and data.frames have column and row name attributes. Here we will create a tibble (a modern type of data.frame) of genotypes. In the process, we will convert the row name attribute in the above matrix into a column called "snp_id".
+
+Here we will use the `%>%` pipe operator, which is part of magrittr package (part of Tidyverse suite of packages). This allows us to pipe the output of one function into the input of another.
+
+```{r}
+library(tidyverse)
+
+vcf.snps_only.tbl_df <- vcf.snps_only.SimpleList[['GT']] %>%
+    as.data.frame(stringsAsFactors = F) %>%
+    rownames_to_column(var = "snp_id") %>%
+    as_tibble()
+```
+
+Now lets review the tibble. Note that entering the name of the tibble alone provides the dimensions, a preview, and the type of vector in each column is listed below the column name (i.e., "<chr>" refers to character)
+
+```{r}
+vcf.snps_only.tbl_df
+```

@@ -1,0 +1,159 @@
+---
+title: "NGS Week 2 webinar"
+author: "Jonathan M. Flowers"
+date: "2/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(kableExtra)
+```
+
+## R Markdown
+
+The purpose of markdown languages is to provide a simple means to convert text into .html. In research contexts, R Markdown along with Jupyter Notebooks are two common approaches to making reports and addressing the problem of reproducibility of research in the genome sciences. If you would like to learn more about how R Markdown is being used to address the reproducibility issue you may wish to watch this video by one of the developers, Garrett Grolemund <https://www.youtube.com/watch?v=s9aWmU0atlQ&t=1000s>.
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+If you load the sample.Rmd file in RStudio and click the **Knit** button, a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. Typically R markdown is designed to produce .html, but you may also produce .pdfs although some images and other features may not render properly. 
+
+Before proceeding, you may need to install R, RStudio, and R packages tidyverse and kableExtra for this document to render properly on your local machine.
+
+To get started, you can embed an R code chunk like this using the `echo=T` will write the code chunk to your report (the code will appear in a gray block):
+
+```{r}
+summary(cars)
+```
+
+Now lets repeat by exporting the results, but not the code by adding `echo=F` to the "chunk options" that appear between { } at the beginning of the code chunk.
+
+```{r, echo=F}
+summary(cars)
+```
+
+
+## Modifying text
+
+With R Markdown its easy to stylize text such as by encapsilating text with one or two asterisks to produce italics or bold fonts.
+
+*This is in italics*  
+**This is in bold**  
+
+Header text can easily be created with the "#" symbol. More "#" symbols means smaller fonts.
+
+#### Header 4
+##### Header 5
+###### Header 6
+
+There is also a simple syntax to create a list with bulleted points.
+
+* This is a list of things
+  + thing 1
+  + thing 2
+  + thing 3
+    - another thing
+    - yet another thing
+
+## Including Plots
+
+You can also embed plots. Note here, we change a number of "chunk options" to center the figure and define its dimensions. 
+
+```{r, fig.align="center", fig.width=4, fig.height=4, fig.cap="Figure: Here is a really important caption."}
+mpg %>%
+  ggplot( aes(x=reorder(class, hwy), y=hwy, fill=class)) + 
+    geom_boxplot() +
+    xlab("class") +
+    theme(legend.position="none")
+```
+
+We can add two figures next to each other like this (using base R plot functions boxplot and plot)
+
+```{r, out.width=c('50%', '50%'), fig.show='hold'}
+tibble(values=rnorm(10000)) %>%
+  ggplot(aes(x=values)) +
+  geom_histogram(bins=50)
+
+tibble(xvalues=1:10,yvalues=runif(10)) %>%
+  ggplot(aes(x=xvalues,y=yvalues)) +
+    geom_point()
+```
+
+
+We can add images such as .png or .jpg that are stored on disk. Note that the fastqc.png is an external image file and must be located in the same directory as the .Rmd file to render properly (or alternatively you provide a path to the file if it is located elsewhere)
+
+![ Figure 3. Per base sequence quality ](fastqc.png){width=50%}
+
+
+## Adding tables
+
+R markdown also has many packages that can be used to embed tables. Here we create a table out of the built in "iris" data using the knitr table package kableExtra. We first pipe to head to keep only first 6 lines before piping to kable() function.
+
+```{r}
+iris %>%
+  head() %>%
+  kable() %>%
+  kable_styling(full_width = F,position = "left")
+
+```
+
+
+## Adding code chunks in other languages
+
+We can  add code chunks in any language including BASH, Python, Julia, C++, and SQL and of course R. Unless you suppress the evaluation of this code, when you Knit the .Rmd document, the code would be executed by the interpreter on your computer.
+
+Note here that in the .Rmd file we specify`bash, eval=F` argument to indicate we don't actually want to run the bash code via the bash interpreter(i.e., thats the `eval=F` part).
+
+```{bash, eval=F}
+echo hello world
+```
+
+You can also write Shell scripts in R Markdown. However, your system must be able to run them (i.e.,the executable bash or sh should exist. This of course would be a problem for Windows users and you would have to install additional software (such as Cygwin or WSL). 
+
+Note in the function below we again suppress the evaluation of the shell script. If we did use `eval=T` then when you Knit this document from RStudio it would run these commands as if they were run at the terminal. 
+
+```{bash, eval=F}
+echo "Hello Bash!"
+cat doc1.txt doc2.txt
+```
+    
+In this course, you will not be evaluating bash code in the Rmarkdown.
+
+So how might you create a report with your homework answers using RMarkdown?
+
+You can create a .Rmd file like this one. Then you might add the question in the homework followed by your answer. Here, I have put in bold the question, and leave the answer unbolded for ease of visualization. 
+
+Finally, note also that if your knitted markdown file doesn't wrap to the next line correctly, you can add two white spaces after a line to indicate the end of line.
+
+Below is an example assignment report.
+
+### Week 1 Assignment  
+### Name: Jonathan Flowers  
+
+**Q1.1a. Which directory should you write outputs that require large amounts of disk space (e.g., BAM files from whole genome sequencing) and will be the primary location where you will write large NGS files generated on compute nodes in this course? Select the single best answer.  
+(a) /archive  
+(b) /home  
+(c) /scratch  **
+
+My answer: (c)
+
+**Q1.2 Show a screenshot of the per base quality as produced by FastQC for the library in question**
+
+![ Q1.2 Answer. Per base sequence quality for the library in question ](fastqc.png){width=50%}
+
+**Q1.3 Provide your slurm job script for your answer**
+
+Here is my script:
+
+```{bash, eval=F}
+#!/bin/bash  
+#SBATCH --nodes=1  
+#SBATCH -–tasks-per-node=1  
+#SBATCH –-cpus-per-task=1  
+#SBATCH -–time=2:00:00  
+#SBATCH –-mem=4GB
+
+echo Luke, I am your father
+```
+
+When you are finished generating your document, you can click on Knit and typically select Knit to HTML.

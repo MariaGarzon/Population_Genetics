@@ -1,0 +1,107 @@
+---
+title: "Untitled"
+author: "Jonathan Flowers"
+date: "2023-06-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### About the data
+
+The data are from a study of human mitochondrial DNA sequences and are very closely related sequences.
+
+```{r}
+library(phangorn)
+
+seq.DNAbin <- read.dna('salesian_mission_aligned.fa', 
+                       format = "fasta")
+
+dim(seq.DNAbin)
+
+```
+
+```{r}
+# Distance Tree generated using "Estimating phylogenetic trees with phangorn" Vignette in Phangorn
+# Step 1: Convert Sequences to phyDat Object
+seq.phyDat <- as.phyDat(seq.DNAbin)
+# Step 2: Calculate Pairwise Distances using the maximum likelihood method and the Jukes-Cantor 69 (JC69) model of nucleotide substitution.
+# The JC69 model is a simple model of DNA evolution where each nucleotide has an equal probability of changing to any other nucleotide.
+# The result, seq.dist, is a distance matrix representing the evolutionary distances between each pair of sequences.
+seq.dist <- dist.ml(seq.phyDat,model="JC69")
+# Step 3: Constructing the Neighbor-Joining Tree based on the distance matrix
+treeNJ <- NJ(seq.dist) 
+# Step 4: Plotting the Tree
+plot(treeNJ,"unrooted",main="NJ")
+# sets the main title of the plot to "NJ".
+```
+
+```{r}
+# bootstrap tree requires defining a function to create the tree
+# One thing to note in the given function for bootstrapping is that the distance matrix is always being calculated from the original seq.phyDat, not the resampled data x in each bootstrap replicate. 
+# The bootstrap values represent the proportion of the bootstrap trees that contain a particular clade, providing a measure of support for each branch in the original tree.
+bs_NJ <- bootstrap.phyDat(seq.phyDat, function(x) NJ(dist.ml(seq.phyDat,model="JC69")))
+plotBS(treeNJ,bs_NJ,main="NJ")
+# for each replicate, it calculates a distance matrix using the JC69 model with dist.ml and then constructs a NJ tree using that distance matrix
+```
+Phangorn allows us to calculate the likelihood (P(Data|model) given a tree topology (e.g., the NJ tree produced above) and a model. The model of evolution (i.e., substitution matrix) is specified by the model argument. If we specify `model = NULL` then Phangorn chooses the simplest model of sequence evolution (all rates between nucleotides are the same)
+```{r}
+# Maximum Likelihood
+# pml function computes the likelihood of a tree given a sequence alignment and a model
+# note: default model=NULL for pml - model is determined by the base frequencies (JC all equal)
+fitJC <- pml(tree = treeNJ, #specifying tree topology
+           data = seq.phyDat,
+           model=NULL) # specifies the model of sequence evolution (i.e., the substitution matrix). When it is set to NULL, phangorn chooses the simplest model, the Jukes-Cantor model (JC69), which assumes equal base frequencies and equal substitution rates among nucleotides.
+fitJC
+
+
+```
+
+```{r}
+# If we set base frequencies to empirical, then the model is F81
+fitF81 <- pml(tree = treeNJ,
+    data = seq.phyDat,
+    bf = "empirical")
+fitF81
+```
+The F81 model relaxes the assumption of equal base frequencies and uses the empirical base frequencies observed in the data.
+
+The above `pml` function allows calculation of the likelihood of a single topology and branch lengths. In phylogeny reconstruction, more typically we will want to search all possible trees (or some subset of the "tree universe" through a heuristic search algorithm).
+
+Here we will use a GTR (general time reversible model) which the is the most common and general model for real-world DNA analysis.
+
+General Time Reversible (GTR) Model
+The GTR model allows for different substitution rates between each pair of nucleotides and different equilibrium base frequencies. The "+G(4)" indicates that rate variation among sites is modeled using a Gamma distribution with 4 rate categories, and "+I" indicates that a proportion of sites are assumed to be invariant.
+
+```{r}
+# This is block executes "pml black box". It generates a starting tree, an pml object and returns the Maximum Likelihood phylogeny with best topology and branch lengths
+# note: can provide a modelTest object or model (as string) to model argument
+pml_bb.fitGTR <- pml_bb(seq.phyDat, model="GTR+G(4)+I", control = pml.control(trace = 0)) 
+pml_bb.fitGTR
+```
+Now we can plot the unrooted ML phylogeny
+```{r}
+plot(pml_bb.fitGTR)
+```
+Above we used the GTR+G(4)+I to build the ML tree. In many cases, we want to identify the best fit model of evolution to the data (the multiple sequence alignment; MSA) to use in the ML phylogeny reconstruction. This is done in a prior step using a program called Model Test (implemented here as the modelTest function)
+```{r}
+# Model selection
+# note: mt is a "modelTest" data.frame with LogLik, AIC, BIC, etc for each model
+# evaluates the fit of several nucleotide substitution models to the data and calculates various model selection criteria for each model, like the log-likelihood (LogLik), Akaike Information Criterion (AIC), and Bayesian Information Criterion (BIC)
+mt <- modelTest(seq.phyDat)
+mt
+```
+
+The model with the best fit has the lowest AIC (Akaike Information Criterion). Now we can run the ML analysis again spe
+```{r}
+# note: here we provide a modelTest object instead of alignment
+pml_bb.modelTest <- pml_bb(mt, control = pml.control(trace = 0)) 
+```
+
+Now plot the unrooted tree.
+
+```{r}
+plot(pml_bb.modelTest)
+```
