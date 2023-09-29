@@ -1,4 +1,4 @@
-# Population Genetics and Evolutionary Biology Assignment 1 Overview
+# Assignment 1 Overview - Phylogeny Reconstruction
 
 ## Background Info:
 The project focused on phylogeny reconstruction—a technique traditionally used in systematic and evolutionary biology to understand life's evolutionary history on Earth. 
