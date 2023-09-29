@@ -9,59 +9,26 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Population Genetics and Evolutionary Biology Assignment 1
-
-Phylogeny reconstruction traditionally was widely adopted mostly in the fields of systematic biology and evolutionary biology to understand the evolutionary history of life on earth. Increasingly, phylogeny is used in other areas relevant to medical applications including comparative genomic studies of gene function and in cancer biology, where single cell tumor phylogenetics has become an important tool to understand tumor progression (Schwarz and Schaeffer 2017 Nature Reviews Genetics doi: 10.1038/nrg.2016.170). 
-
-This assignment introduces practical methods to phylogeny construction using the Phangorn package in R. The assignment provides a hands opportunity to create a multiple sequence alignment, perform both distance-based and Maximum Likelihood approaches to tree-building, and introduce the most common approach to assess confidence in phylogenitic relationships. 
-
-### About the data
-
-The data are from Uddin et al. (2008) phylogenetic study of great apes, new and old world monkeys (doi: 10.1186/1471-2148-8-8) using the COX5A gene. The COX5A sequences are in FASTA format and have not been aligned.
-
-### Completing your assignment
-
-This assignment is provided as an .Rmd file which can be open in RStudio and code chunks run interactively. 
-
-If possible, please return your updated .Rmd file (with your answers) and the knitted .html file with your answers and figures embedded after the appropriate questions. You can use this .Rmd document as a template. 
-
-If for some reason you are unable to return a knitted report, please include your report in a single pdf or word document.
-
-On the NYU Brightspace website, you will find an entry for this assignment in the Assignment section. Please upload your completed assignment at the provided link. 
-
-**Please include your name in the filenames and inside the file of any uploads to Brightspace.**
-
-### General instructions for completing your assignment
-
-For all tasks in this assignment you may wish to review materials from Weeks 1 and 2 and the code review from Week 2 (See code_review1.phylogeny_reconstruction.Rmd).
-
-Before beginning, you need to install the phangorn and tidyverse packages (available at CRAN repository) which can be installed with the familiar `install.packages("package name here")` syntax from your RStudio console. The required `ggtree` and `treeio` packages can be installed by following instructions at Bioconductor.
-
-ggtree:
-<https://bioconductor.org/packages/release/bioc/html/ggtree.html>
-
-treeio: 
-<https://bioconductor.org/packages/release/bioc/html/treeio.html>
-
-Download the raw unaligned COX5A sequences from here:
-<https://drive.google.com/drive/folders/1f0Mvr0qzGzZtJ0Ix0KiD5tSs1_263aEA?usp=sharing>
-
-**The preferred way to complete the assignment is to first run the code interactively via RStudio (by clicking the green arrow in each code block beginning at the top of the .Rmd), fill in your answers (you can help the TA by putting your answers in bold), and then finally knitting your document into an .html file (See Live Session from 9/13/23 and example.Rmd presented in that session) to create a final report.**
-
+### Assignment 1
 
 ### Task 1: Create a multiple sequence alignment
 
-Molecular phylogenetic studies begin with a multiple sequence alignment (MSA) of either protein or DNA sequences. To create an alignment of the COX5A gene, go to the MUSCLE tool at EMBL:
-<https://www.ebi.ac.uk/Tools/msa/muscle/>
-
-Step 1: Upload the file, `COX5A.unaligned.fa` to MUSCLE.  
-Step 2: Select the Pearson FASTA output option.  
-Step 3: Execute MUSCLE to create an MSA.  
-Step 4: Copy the alignment into a text file and save to disk (typically with .fa file extension)  
-Step 5: Move the alignment to the same directory as this .Rmd file.  
-
-
 Q1.1. Upload your MSA with your homework assignment (4 points)
+
+```{r}
+library(phangorn)
+
+seq.DNAbin <- read.dna("COX5A_aligned.fa", 
+                       format = "fasta")
+
+library(seqinr)
+# Replace "path_to_your_fasta_file.fa" with the actual path to your FASTA file
+fasta_data <- read.fasta(file = "path_to_your_fasta_file.fa")
+
+
+
+
+```
 
 Visualize the MSA and select the correct answer.
 
