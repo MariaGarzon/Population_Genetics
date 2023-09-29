@@ -18,69 +18,105 @@ Q1.1. Upload your MSA with your homework assignment (4 points)
 ```{r}
 library(phangorn)
 
-seq.DNAbin <- read.dna("COX5A_aligned.fa", 
+seq.DNAbin <- read.dna("/Users/mariagarzon/Desktop/Population_Genetics/Assignment_1/COX5A_aligned.fa", 
                        format = "fasta")
 
-library(seqinr)
-# Replace "path_to_your_fasta_file.fa" with the actual path to your FASTA file
-fasta_data <- read.fasta(file = "path_to_your_fasta_file.fa")
+image(seq.DNAbin)
 
+# Convert DNAbin to character matrix
+alignment_matrix <- as.character(seq.DNAbin)
 
+# Initialize indel count
+indel_count <- 0
 
+# Check each column
+for (col in 1:ncol(alignment_matrix)) {
+    column <- alignment_matrix[, col]
+    if ("-" %in% column) {
+        indel_count <- indel_count + 1
+    }
+}
+
+print(indel_count)
+
+# Visualize the alignment
+image(seq.DNAbin)
 
 ```
 
-Visualize the MSA and select the correct answer.
+Counting Insertions/Deletions (Indels)
 
-Q1.2 How many insertion/deletions are in your alignment (3 points)?  
-(a) 1  
-(b) 2  
-(c) 6  
-(d) 10  
+Q1.2 How many insertion/deletions are in your alignment?  
+
+(d) 6  
 
 In this case, the alignment is clean and there is no ambiguity in homology (few gaps, high sequence identity across the alignment). Therefore there is no need to run GBlocks or comparable tool to remove parts of the MSA with questionable homology.
 
 ### Task 2: Build a distance-based phylogeny
 
-You are now ready to build a phylogenetic tree from the MSA using a distance method. Trees constructed in this fashion are similar to hierarchical clustering and may even use the same algorithms and non-evolutionary applications. However, distance-based phylogeny reconstruction typically uses an evolutionary rate model to adjust for known biases as we shall see.
+Distance-based methods for constructing phylogenetic trees involve creating a matrix of evolutionary distances between each pair of sequences in the study and then using this matrix to construct a tree that best represents the evolutionary relationships between the sequences.
 
+Distance Matrix:represents the evolutionary distances between each pair of sequences or taxa in the study. Each entry in the matrix (i, j) corresponds to the evolutionary distance between sequence i and sequence j.
 
+Evolutionary distance: measure of evolutionary change between sequences. It can be calculated using various models that consider mutations, substitutions, insertions, deletions, and other evolutionary events.
 
-Before running this block of code, copy the aligned fasta to same directory as this .Rmd file and update the `aligned_fasta` variable with your MSA filename. Then execute this code block to read the alignment.
+The process of tree construction using distance methods is conceptually similar to hierarchical clustering in that it groups sequences (or taxa) based on similarities (or distances) between them.However, while hierarchical clustering is used in various fields and does not necessarily assume an evolutionary process, distance-based phylogeny specifically deals with evolutionary relationships and uses evolutionary models to adjust distances.
 
 ```{r}
 library(phangorn)
-aligned_fasta <- 'COX5A_aligned.fa' # <- your MSA file here between single quotes
+aligned_fasta <- 'COX5A_aligned.fa' 
 seq.DNAbin <- read.dna(aligned_fasta, 
                        format = "fasta")
 seq.phyDat <- as.phyDat(seq.DNAbin)
+
+# many functions for phylogenetic analysis and tree manipulation in the phangorn package require data to be in the phyDat format.
 ```
 
-Building a distance tree requires a distance matrix with evolutionary distance estimates between all pairs of taxa in the analysis. In distance-based tree reconstruction, it is often necessary to apply some form of correction to the distance estimate to account for the possiblity of 'multiple hits' (see lecture material), rate differences between transition and tranversion mutatons and other factors. Here, we will use the Jukes-Cantor (JC69) correction.
 
-Create a distance matrix.
+1. Constructing a distance matrix: 
+
+When constructing a phylogenetic tree using distance methods, the first step is typically to estimate the evolutionary distances between all pairs of sequences (taxa) in the dataset. 
+
+Multiple Hits:over time, at any given site in a DNA sequence, it’s possible for multiple mutations to occur. This is called "multiple hits." For example, a site might originally be A, change to G, and then change back to A again. If we only compare the final sequences, we might erroneously conclude that there was no change at that site, hence underestimating the true evolutionary distance.
+
+Transition and Transversion Mutations:
+a. Transition mutations are substitutions between purines (A ↔ G) or between pyrimidines (C ↔ T).
+b. Transversion mutations are substitutions between a purine and a pyrimidine.
+Transition mutations occur more frequently than transversion mutations, so models often correct for this imbalance to avoid underestimating evolutionary distances.
+
+Jukes-Cantor Model (JC69):
+The Jukes-Cantor model is one of the simplest models of nucleotide substitution.The JC69 model provides a formula to correct observed distances to account for unseen changes (multiple hits). It assumes that:
+
+a. All nucleotide substitutions are equally likely (i.e., it does not distinguish between transition and transversion mutations).
+b. All nucleotides are equally frequent.
+c. The rate of substitution is constant across all sites in the sequences.
 
 ```{r}
 seq.dist <- dist.ml(seq.phyDat,model="JC69")
 seq.dist
 ```
-Now lets see how much the JC69 distances compare to p-distances. P-distances are the standard hamming distance, or, the proportion of sites that differ between a pair of sequences.
+
+Compare JC69 distances  to p-distances:
+P-distances are the standard hamming distance, or, the proportion of sites that differ between a pair of sequences.
 
 ```{r}
 dist.hamming(seq.phyDat, ratio = TRUE, exclude = "none")
 ```
-Q2.1 Review the two distance matrices. There are two pairs of sequences that are identical. Which are they? (2 points)  
 
-Q2.2 Find both the p-distance and J69 distance between the human sequence Homo_sapiens_isolate_Hsap76 and Eulemur_fulvus. What are the uncorrected and JC69 distances, respectively? (2 points)  
+Q2.1 There are two pairs of sequences that are identical:
+
+Homo_sapiens_isolate_Hsap76 and Homo_sapiens_isolate_Hsap94
+Pan_paniscus and Pan_troglodytes
+
+Q2.2 What are the uncorrected and JC69 distances of the omo_sapiens_isolate_Hsap76 and Eulemur_fulvu? 
+
+J69 distance:0.062104428 
+p-distance/uncorrected: 0.058823529 
 
 Q2.3 Which of the following best explains why the JC69 distance is greater than the p-distance? (3 points)
-(a) the JC69 distance includes indels, p-distances do not  
 (b) the JC69 distance corrects for multiple hits, p-distances do not  
-(c) the JC69 distance adjusts for alignment errors, the p-distance does not  
-(d) all of the above  
 
-
-Q2.4. **You will be awarded 1 point for simply executing the code and showing the tree in your report for all trees in this assignment.** You can build your first tree here by running the Neighbor-joining algorithm on the JC69 distance matrix (1 point)
+Q2.4. Running the Neighbor-joining algorithm on the JC69 distance matrix: 
 
 ```{r}
 seq.NJ.phylo <- NJ(seq.dist)
@@ -90,14 +126,15 @@ seq.NJ.phylo$edge.length[seq.NJ.phylo$edge.length < 0] <- 0 # sometimes NJ algor
 plot.phylo(seq.NJ.phylo,type="fan",main="Neighbor-Joining (unrooted)",cex = 0.5)
 ```
 
-
-
 Phylogenetic trees are not generally rooted by default (although there are exceptions). Lets check if  the NJ tree above is rooted.
 ```{r}
 ape::is.rooted(seq.NJ.phylo)
 ```
 
-Q2.5 Now create a 'bootstrap tree' with bootstrap support values on each branch using the `bootstrap.phyDat` function. Note that we specify argument `bs=1000` to generate 1000 pseudoreplicate MSAs and trees by bootstrapping over columns in the MSA (1 point)
+Q2.5 Creating a 'bootstrap tree' with bootstrap support values on each branch using the `bootstrap.phyDat` function. Note that we specify argument `bs=1000` to generate 1000 pseudoreplicate MSAs and trees by bootstrapping over columns in the MSA (1 point)
+
+Bootstrap Method in Phylogenetics:
+Bootstrapping is a resampling method used in phylogenetics to assess the reliability of the inferred trees. It involves repeatedly resampling, with replacement, the set of aligned sequences (or the sites of the sequences) and then inferring a tree for each resampled dataset. The number of times a particular clade (or branch) appears across all resampled trees is considered the bootstrap support for that clade.
 
 ```{r}
 seq.NJ.multiphylo <- bootstrap.phyDat(seq.phyDat, bs = 1000, function(x) NJ(dist.ml(seq.phyDat,model="JC69")))
@@ -106,9 +143,8 @@ plotBS(seq.NJ.phylo,seq.NJ.multiphylo,type = "fan",main="Neihbor-Joining Bootstr
 
 Q2.6. Bootstrapping in molecular phylogeny reconstruction involves sampling columns in the MSA with replacement. Which of the following statements is true about this bootstrap procedure and output tree. Select all true statements. (3 points)  
 
-(a) Each 'pseudoreplicate' MSA has the same number of characters (i.e., columns) as the original MSA  
-(b) No column from the original MSA can appear more than once in a pseudoreplicate MSA  
-(c) A distance matrix is created for each pseudoreplicate MSA followed by tree construction for that   pseudoreplicate
+(a) Each 'pseudoreplicate' MSA has the same number of characters (i.e., columns) as the original MSA
+(c) A distance matrix is created for each pseudoreplicate MSA followed by tree construction for that pseudoreplicate
 (d) The bootstrap value on each branch of the bootstrap tree represents the percent of pseudoreplicate trees in which that branch was observed.  
 
 Q2.7 Some distance-based algorithms are 'ultrametric' and assume equal rates of evolution (a 'molecular clock'). Such trees can be recognized because branch lengths of taxa that share a most recent common ancestor (MRCA) will have the same branch lengths leading back to the shared ancestor.  
@@ -118,21 +154,28 @@ In non-ultrametric trees, taxa that share an MRCA **may** have different branch 
 Lemurs (represented by Eulemur fulvus) are the outgroup to monkeys, gibbons and great apes included in this study. Use this information to answer the following questions
 
 Q2.7a Given this outgroup, on what branch of the tree should the root edge appear (2 points)?
-(a) on the branch leading to the two human sequences
-(b) on the branch leading to orangutans (Pongo)
-(c) on the branch leading to old world monkeys (Colobus and Papio)
 (d) on the branch leading to Eulemur fulvus
 
 Q2.7b. List a pair of terminal taxa that form a clade (a monophyletic group), as indicated by a bootstrap value of 90 or higher **and** clearly have different rates of evolution (2 points).  
 
+When two terminal taxa (end branches representing different species or sequences) form a clade with a bootstrap value of 90 or higher, it means that there is high confidence (≥90%) that these taxa share a more recent common ancestor with each other than with any other taxa in the tree.Different branch lengths in a clade suggest that the taxa have been accumulating mutations at different rates, reflecting different rates of evolution.
+
+Nomascus_gabriellae and Symphalangus_syndactylus have different branch lengths in the same clade. 
+
 Q2.7c. Which of those two taxa has a faster rate of evolution on the terminal branch? (2 points)
 
+Symphalangus_syndactylus
+
 Now we will try rooting the tree on the Lemur sequence (Eulemur fulvus). Lemurs are known outgroups to all species of old world monkeys, gibbons, and great apes which constitute the rest of the taxa in this analysis.
+
 ```{r}
 library(ggtree)
 library(treeio)
+
+print(seq.NJ.phylo$tip.label)
+
 seq.NJ_rooted.treedata <- seq.NJ.phylo %>% 
-  ape::root(outgroup = "Eulemur_fulvus", edgelabel = TRUE,resolve.root=T) %>%
+  ape::root(outgroup = "Eulemur_fulvus\\", edgelabel = TRUE,resolve.root=T) %>%
   as_tibble() %>%
   as.treedata
 ```
@@ -142,7 +185,7 @@ Lets confirm tree is rooted.
 ape::is.rooted(seq.NJ_rooted.treedata)
 ```
 
-Q2.8 Now lets plot the rooted original tree using ggtree package. Note that you will compare this output tree to the Maximum Likelihood tree in Task 3 (1 point)
+Q2.8 Plot the rooted original tree using ggtree package:
 
 ```{r}
 ggtree(seq.NJ_rooted.treedata,layout="rectangular") + 
@@ -152,14 +195,23 @@ ggtree(seq.NJ_rooted.treedata,layout="rectangular") +
 
 The ape::root function joins the outgroup at the node "below" the outgroup as indicated here with a red triangle, but does not draw a root edge. Ideally, a root edge (branch) would be drawn on the branch leading to Eulemur fulvus creating a bifurcation between Eulemur and all members of the "ingroup". Nevertheless, using Eulemur fulvus as an outgroup, Papio anubis and Colobus guereza (old world monkeys) form a sister group Gibbons (Symphalangus, Nomascus), Orangutans (Pongo), and the great apes as expected.
 
-
 ### Task 3: Maximum Likelihood (ML) analysis of COX5A.
 
-Once you have an appropriately curated MSA, the first step in ML-based phylogeny reconstruction is typically to identify a model of sequence evolution that best fits the data. **Some methods like the popular RaxML software just assume a General Time Reversible model is best, which may or may not be true**, but for large genome-scale datasets is sometimes assumed for computational ease. For smaller datasets, the best fit model should be determined with Model Test, which calculates the Akaike Information Criteria (AIC) and the Bayesian Information Criterion for a large number of substitution models. These criteria can then be used to select the best model of sequence evolution to explain the patterns of mutations in the MSA. 
+Once you have an appropriately curated MSA, the first step in ML-based phylogeny reconstruction is typically to identify a model of sequence evolution that best fits the data. **Some methods like the popular RaxML software just assume a General Time Reversible model is best, which may or may not be true**, but for large genome-scale datasets is sometimes assumed for computational ease. 
 
-Note, 'substitution' and 'mutation' are sometimes used loosely as equivalent in the phylogenetics vernacular, although we will see later in the course that substitution and mutation are different processes in molecular evolution. 
+For smaller datasets, the best fit model should be determined with Model Test, which calculates the Akaike Information Criteria (AIC) and the Bayesian Information Criterion for a large number of substitution models. These criteria can then be used to select the best model of sequence evolution to explain the patterns of mutations in the MSA. 
 
-Run ModelTest here as implemented in the phangorn package.
+AIC: It estimates the quality of each model relative to the other models. A model with lower AIC is typically considered better.
+BIC: Similar to AIC, it evaluates model goodness but includes a penalty for the number of parameters in the model, so it’s more stringent.
+
+General Time Reversible (GTR) Model:
+It is one of the most flexible and general models of nucleotide substitution. It assumes that the rate of substitution from one nucleotide to another is reversible and can vary.
+
+Some software, like RAxML, may assume GTR as it is a comprehensive model, especially when dealing with large datasets to reduce computational demand.
+
+The best-fit model provides a balance between complexity (number of parameters) and goodness of fit. It avoids overfitting (where the model is too complex) and underfitting (where the model is too simple).
+
+Run ModelTest here as implemented in the phangorn package:
 
 ```{r}
 # Model selection
@@ -167,7 +219,7 @@ Run ModelTest here as implemented in the phangorn package.
 mt <- modelTest(seq.phyDat)
 ```
 
-Now review the output in sorted order according to AIC.
+Now review the output in sorted order according to AIC:
 
 ```{r}
 mt %>%
@@ -175,30 +227,25 @@ mt %>%
   dplyr::arrange(AIC)
 ```
 
-How do we identify model with best fit? The Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC) are approaches to identify the best model. Review the AIC and BIC wikipedia pages here <https://en.wikipedia.org/wiki/Akaike_information_criterion> and here <https://en.wikipedia.org/wiki/Bayesian_information_criterion>. 
+How do we identify model with best fit? The Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC) are approaches to identify the best model.
 
 Q3.1 Which model is the best fit according to AIC? (3 points)
 
-(a) GTR+G(4)+I
-(b) F81
 (c) K80+I
-(d) TPM3+I
-
 
 Now we can run the ML analysis to determine the tree topology and branch lengths that maximize the probability of observing the sequences in the MSA.
 
-
-
 ```{r}
 # note: here we provide a modelTest object instead of alignment
-pml_bb.modelTest <- pml_bb(mt, control = pml.control(trace = 0), rearrangement = "stochastic")  # pml_bb.modelTest is a pml object
+pml_bb.modelTest <- pml_bb(mt, control = pml.control(trace = 0), rearrangement = "stochastic")  
+# pml_bb.modelTest is a pml object
+# trace = 0 means that the progress of the optimization won't be printed to the console.
+# The value "stochastic" implies that a stochastic (randomized) method is being used for tree rearrangement.
 ```
 
-Q3.2 Review the pml_bb documentation "Details" (at your console, enter `?pml_bb`). What model selection method does this function use to select the best-fitting model of sequence evolution from the modelTest result object? (2 points)
-(a) AIC
+Q3.2  What model selection method does this function use to select the best-fitting model of sequence evolution from the modelTest result object? (2 points)
+
 (b) BIC
-(c) Maximum Likelihood
-(c) none of the above
 
 Once again, check if the tree is rooted
 ```{r}
@@ -207,26 +254,53 @@ pml_bb.modelTest$tree %>%
   ape::is.rooted()
 ```
 
-Q3.3 Lets root using same approach as with NJ distance tree and plot the ML tree (1 point)  
+Q3.3 Lets root using same approach as with NJ distance tree and plot the ML tree:
 
 ```{r}
 # note: we can plot a pml object with base R plot function or convert to treedata object and plot with ggtree
 pml_bb.modelTest$tree %>% 
-  ape::root(outgroup = "Eulemur_fulvus", edgelabel = TRUE,resolve.root=T) %>%
-  as_tibble() %>%
-  as.treedata() %>%
+  ape::root(outgroup = "Eulemur_fulvus\\", edgelabel = TRUE,resolve.root=T) %>%
+  as_tibble() %>% # tibble (a type of data frame provided by the tidyverse).
+  as.treedata() %>% # Converts the tibble to a treedata object, which is a specialized object to work with phylogenetic trees and associated data
   ggtree(layout="rectangular") + 
     geom_tiplab() + 
     geom_rootpoint(size=2,color="red",shape=2)
 ```
 
+Comparing this tree to the NJ tree at the end of Task 2:
 
-Now compare this tree, to the NJ tree at the end of Task 2. If we take at face value the branching pattern in each analysis, which phylogeny correctly identifies the great apes as a clade? Which one does not? Note that Pongo (Orangutans) are great apes, but gibbons (Symphalangus and Nomascus) are not. (2 points)  
+Which phylogeny correctly identifies the great apes as a clade? Which one does not? Note that Pongo (Orangutans) are great apes, but gibbons (Symphalangus and Nomascus) are not. (2 points)  
 
+This tree correctly identifies the great apes as a clade as it groups Pongo, Humans, Gorillas, and other great apes in one, in contrast to the NJ tree at the end of Task 2. 
 
 Optimality criterion methods like ML search the "tree universe" (either evaluating all of the tree topologies in an exhaustive search or a subset of possible tree topologies using a tree-searching algorithm) to identify the tree that maximizes the optimality score, in this case, the Maximum Likelihood.  
 
 Ideally, we would conduct an exhaustive search of all trees in the tree universe to determine their likelihood, thereby ensuring that we infer the ML tree and do not end up with a suboptimal tree (which can occur if the tree-searching algorithm gets stuck in a local optimum). Your instructor couldn't find an option to force phangorn to perform an exhaustive search. Instead, we applied a stochastic tree-searching algorithm.  
 
-Q3.4 Review the Google Slides from Week 2. What is the total number of trees that exist in the tree universe for the MSA in this assignment? (3 points)  
+In phylogenetic tree reconstruction, especially in Maximum Likelihood (ML) and Bayesian Inference (BI) methods, the search space of all possible trees is vast, and exploring all possible trees to find the optimal one is computationally impractical. Therefore, stochastic tree-searching algorithms are often used to navigate through this space more efficiently.
 
+The algorithm starts with an initial tree and iteratively makes random modifications to its structure, like swapping branches (Subtree Pruning and Regrafting - SPR, or Nearest Neighbor Interchange - NNI). After each modification, the likelihood of the new tree given the data is evaluated, and decisions to accept or reject the new topology are made based on probabilistic criteria.
+
+Q3.4 What is the total number of trees that exist in the tree universe for the MSA in this assignment? (3 points)  
+
+Number of unrooted trees:  34459425
+Number of rooted trees:  654729075
+
+```{r}
+# Define the number of taxa
+n <- 11
+
+# Function to calculate number of unrooted trees
+unrooted_trees <- function(n) {
+  factorial(2 * n - 5) / (2^(n - 3) * factorial(n - 3))
+}
+
+# Function to calculate number of rooted trees
+rooted_trees <- function(n) {
+  factorial(2 * n - 3) / (2^(n - 2) * factorial(n - 2))
+}
+
+# Calculate and print the number of unrooted and rooted trees
+print(paste("Number of unrooted trees: ", unrooted_trees(n)))
+print(paste("Number of rooted trees: ", rooted_trees(n)))
+```
